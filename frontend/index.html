@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Analyzer</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <h1>Code Repository Analyzer</h1>
+        <div class="input-group">
+            <input type="text" id="repoUrl" placeholder="Enter Git Repository URL">
+            <button onclick="analyzeRepo()">Analyze</button>
+        </div>
+        <div id="loading" class="hidden">Analyzing... Please wait.</div>
+        <div id="result" class="hidden">
+            <h2>Analysis Report</h2>
+            <pre id="reportContent"></pre>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
