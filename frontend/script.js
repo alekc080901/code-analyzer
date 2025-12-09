@@ -1,11 +1,6 @@
-<<<<<<< Updated upstream
-// Base API URL
-const API_BASE_URL = 'http://localhost:8000';
 let lastReport = '';
-=======
 // Base API URL - use same hostname as the frontend to avoid CORS issues
 const API_BASE_URL = `${window.location.protocol}//${window.location.hostname}:8080`;
->>>>>>> Stashed changes
 
 async function analyzeRepo() {
     const urlInput = document.getElementById('repoUrl');
