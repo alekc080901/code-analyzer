@@ -27,3 +27,4 @@ app.include_router(router)
 def read_root():
     return {"message": "Code Analyzer API"}
 
+

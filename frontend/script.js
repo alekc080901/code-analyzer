@@ -1,8 +1,11 @@
+// Base API URL
+const API_BASE_URL = 'http://localhost:8000';
+
 async function analyzeRepo() {
     const urlInput = document.getElementById('repoUrl');
-    const loading = document.getElementById('loading');
-    const resultDiv = document.getElementById('result');
-    const reportContent = document.getElementById('reportContent');
+    const loading = document.getElementById('loadingRepo');
+    const resultDiv = document.getElementById('resultRepo');
+    const reportContent = document.getElementById('reportContentRepo');
 
     const url = urlInput.value;
     if (!url) {
@@ -15,7 +18,7 @@ async function analyzeRepo() {
     reportContent.textContent = '';
 
     try {
-        const response = await fetch('http://localhost:8000/analyze', {
+        const response = await fetch(`${API_BASE_URL}/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -38,4 +41,3 @@ async function analyzeRepo() {
         loading.classList.add('hidden');
     }
 }
-

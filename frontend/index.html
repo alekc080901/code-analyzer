@@ -4,22 +4,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Code Analyzer</title>
+    <title>AI Code Analyzer</title>
     <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
     <div class="container">
-        <h1>Code Repository Analyzer</h1>
-        <div class="input-group">
-            <input type="text" id="repoUrl" placeholder="Enter Git Repository URL">
-            <button onclick="analyzeRepo()">Analyze</button>
+        <h1>AI Code Analyzer</h1>
+
+        <!-- Repo Analysis Section -->
+        <div class="section">
+            <h2>Code Repository Analyzer</h2>
+            <div class="input-group">
+                <input type="text" id="repoUrl" placeholder="Enter Git Repository URL">
+                <button onclick="analyzeRepo()">Analyze Code</button>
+            </div>
+            <div id="loadingRepo" class="hidden loading">Analyzing Code... Please wait.</div>
+            <div id="resultRepo" class="hidden result-box">
+                <h3>Code Analysis Report</h3>
+                <pre id="reportContentRepo"></pre>
+            </div>
         </div>
-        <div id="loading" class="hidden">Analyzing... Please wait.</div>
-        <div id="result" class="hidden">
-            <h2>Analysis Report</h2>
-            <pre id="reportContent"></pre>
-        </div>
+
     </div>
     <script src="script.js"></script>
 </body>

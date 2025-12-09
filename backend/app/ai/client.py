@@ -1,47 +1,99 @@
+import requests
+import uuid
+import base64
 import os
-from transformers import pipeline
+import urllib3
+import json
 
-MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct" 
-pipe = None
+# Отключаем предупреждения о самоподписанных сертификатах (для Sber API часто нужно)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-def get_model():
-    global pipe
-    if pipe is None:
+class GigaChatClient:
+    def __init__(self):
+        # Получаем данные из переменных окружения
+        self.auth_key = os.getenv('GIGACHAT_AUTH_KEY')
+        self.scope = os.getenv('GIGACHAT_SCOPE', 'GIGACHAT_API_PERS')
+        self.oauth_url = "https://ngw.devices.sberbank.ru:9443/api/v2/oauth"
+        self.api_url = "https://gigachat.devices.sberbank.ru/api/v1/chat/completions"
+        self.access_token = None
+
+        if not self.auth_key:
+            print("Warning: GIGACHAT_AUTH_KEY not set in environment variables.")
+
+    def get_token(self):
+        if not self.auth_key:
+            print("Cannot get token: GIGACHAT_AUTH_KEY is missing.")
+            return
+
+        rq_uid = str(uuid.uuid4())
+        headers = {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Accept': 'application/json',
+            'RqUID': rq_uid,
+            'Authorization': f'Basic {self.auth_key}'
+        }
+        payload = {'scope': self.scope}
+
         try:
-            print(f"Loading local model: {MODEL_NAME}...")
-            pipe = pipeline("text-generation", model=MODEL_NAME, device="cpu", max_new_tokens=500)
-            print("Model loaded successfully.")
+            response = requests.post(self.oauth_url, headers=headers, data=payload, verify=False)
+            response.raise_for_status()
+            self.access_token = response.json()['access_token']
+            print("GigaChat token received successfully.")
         except Exception as e:
-            print(f"Failed to load model: {e}")
-            raise e
-    return pipe
+            print(f"Error getting GigaChat token: {e}")
+            self.access_token = None
 
-def analyze_code(code_content: str) -> str:
-    """Analyzes code using a local lightweight LLM."""
-    if not code_content:
-        return "No code found to analyze."
-    
-    try:
-        model = get_model()
-    except Exception as e:
-        return f"Model loading failed: {str(e)}"
+    def analyze_text(self, text: str) -> str:
+        if not self.auth_key:
+             return "GigaChat is not configured (missing auth key)."
 
-    if model is None:
-        return "Local model is not initialized."
-
-    # Truncate to avoid extremely long processing times on CPU
-    truncated_content = code_content[:2000] 
-    
-    prompt = f"Analyze the following code for bugs and improvements:\n\n{truncated_content}\n\nAnalysis:"
-    
-    try:
-        # Генерация ответа
-        outputs = model(prompt, do_sample=True, temperature=0.7, top_k=50, top_p=0.95)
-        generated_text = outputs[0]["generated_text"]
+        if not self.access_token:
+            self.get_token()
         
-        # Возвращаем только новую часть (анализ), убирая промпт
-        if generated_text.startswith(prompt):
-            return generated_text[len(prompt):].strip()
-        return generated_text
-    except Exception as e:
-        return f"Error interacting with local AI: {str(e)}"
+        if not self.access_token:
+            return "Failed to authenticate with GigaChat."
+
+        headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'Authorization': f'Bearer {self.access_token}'
+        }
+
+        # Обрезаем текст, чтобы влезть в контекст
+        truncated_text = text[:18000] # GigaChat держит большой контекст, но бережем токены
+
+        payload = {
+            "model": "GigaChat",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "Ты эксперт по анализу кода и распределенных систем (микросервисов). Твоя задача - находить ошибки, проблемы с производительностью и давать рекомендации."
+                },
+                {
+                    "role": "user",
+                    "content": f"Проанализируй следующие данные (код или трейсы) и найди проблемы:\n\n{truncated_text}"
+                }
+            ],
+            "temperature": 0.7
+        }
+
+        try:
+            response = requests.post(self.api_url, headers=headers, json=payload, verify=False)
+            
+            # Если токен протух (401), пробуем обновить один раз
+            if response.status_code == 401:
+                print("Token expired, refreshing...")
+                self.get_token()
+                headers['Authorization'] = f'Bearer {self.access_token}'
+                response = requests.post(self.api_url, headers=headers, json=payload, verify=False)
+
+            response.raise_for_status()
+            return response.json()['choices'][0]['message']['content']
+        except Exception as e:
+            return f"Error interacting with GigaChat: {str(e)}"
+
+# Singleton instance
+gigachat = GigaChatClient()
+
+def analyze_code(content: str) -> str:
+    return gigachat.analyze_text(content)
