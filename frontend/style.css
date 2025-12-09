@@ -118,3 +118,18 @@ pre {
     color: #2c3e50;
     line-height: 1.5;
 }
+
+.download-group {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #fff;
+    font-size: 0.95rem;
+}

@@ -1,5 +1,6 @@
 // Base API URL
 const API_BASE_URL = 'http://localhost:8000';
+let lastReport = '';
 
 async function analyzeRepo() {
     const urlInput = document.getElementById('repoUrl');
@@ -32,12 +33,49 @@ async function analyzeRepo() {
 
         const data = await response.json();
         reportContent.textContent = data.result || JSON.stringify(data, null, 2);
+        lastReport = reportContent.textContent;
         resultDiv.classList.remove('hidden');
 
     } catch (error) {
         reportContent.textContent = error.message;
+        lastReport = reportContent.textContent;
         resultDiv.classList.remove('hidden');
     } finally {
         loading.classList.add('hidden');
     }
+}
+
+function downloadReport() {
+    if (!lastReport) {
+        alert('No report to download. Run an analysis first.');
+        return;
+    }
+
+    const formatSelect = document.getElementById('reportFormat');
+    const format = formatSelect ? formatSelect.value : 'txt';
+    let content = lastReport;
+    let mime = 'text/plain';
+    let ext = format;
+
+    if (format === 'json') {
+        mime = 'application/json';
+        // Попробуем парсить, иначе сохраняем как строку
+        try {
+            content = JSON.stringify(JSON.parse(lastReport), null, 2);
+        } catch (_) {
+            // оставляем как есть
+        }
+    } else if (format === 'md') {
+        mime = 'text/markdown';
+    }
+
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `report.${ext}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }

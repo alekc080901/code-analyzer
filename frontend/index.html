@@ -23,6 +23,14 @@
             <div id="resultRepo" class="hidden result-box">
                 <h3>Code Analysis Report</h3>
                 <pre id="reportContentRepo"></pre>
+                <div class="download-group">
+                    <select id="reportFormat">
+                        <option value="txt">TXT</option>
+                        <option value="json">JSON</option>
+                        <option value="md">Markdown</option>
+                    </select>
+                    <button class="btn-secondary" onclick="downloadReport()">Download</button>
+                </div>
             </div>
         </div>
 
