@@ -9,29 +9,16 @@ router = APIRouter()
 class RepoRequest(BaseModel):
     url: str
 
-class TraceRequest(BaseModel):
-    url: Optional[str] = None
-
 @router.post("/analyze")
 def analyze_repo(request: RepoRequest):
-    print(f"Received analysis request for: {request.url}")
+    print(f"Received analysis request (traces + code) for: {request.url}")
     try:
-        result = process_repository(request.url)
-        print("Analysis completed successfully")
-        return result
-    except Exception as e:
-        print(f"Error processing repository: {e}")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
-
-@router.post("/analyze-traces")
-def analyze_traces_endpoint(request: TraceRequest):
-    print(f"Received trace analysis request. Repo URL: {request.url}")
-    try:
+        # Analyze traces first, then correlate with code to find issues.
         result = analyze_system_traces(request.url)
+        print("Analysis (traces + code) completed successfully")
         return result
     except Exception as e:
-        print(f"Error analyzing traces: {e}")
+        print(f"Error processing repository and traces: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 

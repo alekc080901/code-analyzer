@@ -167,8 +167,8 @@ def analyze_system_traces(repo_url: str = None) -> dict:
         if not has_data:
              return {"status": "completed", "result": f"No traces found in Jaeger for services: {', '.join(service_names)}. Please ensure traffic is generated."}
 
-        # 3. Combine Code + Traces
-        full_prompt_content = f"{code_context}=== SYSTEM TRACES ===\n{traces_context}"
+        # 3. Combine Traces-first (primary signal) + Code context
+        full_prompt_content = f"=== SYSTEM TRACES ===\n{traces_context}\n\n=== SOURCE CODE CONTEXT ===\n{code_context}"
 
         # 4. Analyze
         result = analyze_code(full_prompt_content)
