@@ -122,6 +122,7 @@ def analyze_system_traces(repo_url: str = None) -> dict:
         
         service_names = []
         code_context = ""
+        db = SessionLocal()
         
         if repo_url:
             # 1. Clone & Analyze Code structure
@@ -172,6 +173,19 @@ def analyze_system_traces(repo_url: str = None) -> dict:
 
         # 4. Analyze
         result = analyze_code(full_prompt_content)
+
+        # 5. Persist report so it shows up in UI refresh
+        try:
+            with tracer.start_as_current_span("save_db_traces"):
+                report = Report(repo_url=repo_url, status="completed", result=result)
+                db.add(report)
+                db.commit()
+                db.refresh(report)
+        except Exception as e:
+            print(f"Error saving trace report: {e}")
+            db.rollback()
+        finally:
+            db.close()
         
         return {"status": "completed", "result": result}
 
@@ -179,5 +193,41 @@ def get_report(report_id: int):
     db = SessionLocal()
     try:
         return db.query(Report).filter(Report.id == report_id).first()
+    finally:
+        db.close()
+
+def list_reports(limit: int = 20):
+    """Returns latest reports for frontend consumption."""
+    db = SessionLocal()
+    try:
+        reports = (
+            db.query(Report)
+            .order_by(Report.id.desc())
+            .limit(limit)
+            .all()
+        )
+        print(reports)
+        return [
+            {
+                "id": r.id,
+                "repo_url": r.repo_url,
+                "status": r.status,
+                "result": r.result,
+            }
+            for r in reports
+        ]
+    finally:
+        db.close()
+
+def delete_report(report_id: int) -> bool:
+    """Deletes a report by id. Returns True if deleted, False if not found."""
+    db = SessionLocal()
+    try:
+        report = db.query(Report).filter(Report.id == report_id).first()
+        if not report:
+            return False
+        db.delete(report)
+        db.commit()
+        return True
     finally:
         db.close()

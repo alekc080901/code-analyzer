@@ -1,7 +1,7 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
-from app.services.analyzer import process_repository, get_report, analyze_system_traces
+from app.services.analyzer import process_repository, get_report, analyze_system_traces, list_reports, delete_report
 import traceback
 
 router = APIRouter()
@@ -32,3 +32,27 @@ def read_report(report_id: int):
 @router.get("/health")
 def health_check():
     return {"status": "ok"}
+
+@router.get("/reports")
+def read_reports(limit: int = Query(20, ge=1, le=100)):
+    try:
+        print(f"Reading reports with limit: {limit}")
+        return list_reports(limit)
+    except Exception as e:
+        print(f"Error reading reports: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/report/{report_id}")
+def remove_report(report_id: int):
+    try:
+        deleted = delete_report(report_id)
+        if not deleted:
+            raise HTTPException(status_code=404, detail="Report not found")
+        return {"status": "deleted", "id": report_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting report: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
