@@ -11,6 +11,8 @@ import glob
 # JAEGER_QUERY_HOST должен указывать на хост, где крутится Jaeger UI/Query (порт 16686)
 JAEGER_API_URL = os.getenv("JAEGER_QUERY_HOST", "http://host.docker.internal:16686")
 
+INFRA_SERVICES = {"db", "postgres", "redis", "jaeger", "prometheus", "grafana", "nginx"}
+
 def fetch_traces(service_name: str, limit: int = 5):
     """Fetches traces from Jaeger for a specific service."""
     try:
@@ -56,12 +58,26 @@ def extract_service_names(repo_path: str) -> list[str]:
                 if 'services' in data:
                     for service in data['services']:
                         # Игнорируем инфраструктурные сервисы по эвристике
-                        if service not in ['db', 'postgres', 'redis', 'jaeger', 'prometheus', 'grafana', 'nginx']:
+                        if service not in INFRA_SERVICES:
                             service_names.add(service)
         except Exception as e:
             print(f"Error parsing {compose_file}: {e}")
             
     return list(service_names)
+
+def get_available_services() -> list[str]:
+    """Reads service list directly from Jaeger to align with actual service names."""
+    try:
+        url = f"{JAEGER_API_URL}/api/services"
+        print(f"Fetching available services from: {url}")
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        services = data.get("data", [])
+        return [s for s in services if s not in INFRA_SERVICES]
+    except Exception as e:
+        print(f"Error fetching services list from Jaeger: {e}")
+        return []
 
 def process_repository(repo_url: str) -> dict:
     with tracer.start_as_current_span("process_repository"):
@@ -130,7 +146,8 @@ def analyze_system_traces(repo_url: str = None) -> dict:
         
         # Fallback
         if not service_names:
-            service_names = ["service-a", "service-b"]
+            jaeger_services = get_available_services()
+            service_names = jaeger_services or ["service-a", "service-b"]
         
         print(f"Analyzing traces for services: {service_names}")
 
